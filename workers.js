@@ -11,65 +11,47 @@ const MAX_MESSAGE_CHARS = 4_000;
 const MAX_OUTPUT_TOKENS = 800;
 
 // =====================================================
-// 1. BASIS DATA FAKTUAL (WAJIB DIISI DATA ASLI)
+// 1. DATA RESMI DESA (Hanya isi yang 100% valid)
 // =====================================================
-// AI HANYA akan tahu apa yang ada di sini. Kosongkan jika tidak yakin.
 const VILLAGE_FACTS = {
   nama: "Desa Bongancina",
   kecamatan: "Busungbiu",
   kabupaten: "Buleleng",
   provinsi: "Bali",
-  // CONTOH: kepalaDesa: "Bapak I Made XXX", // Hapus komentar & isi jika data valid
-  // CONTOH: jumlahPenduduk: "1.200 jiwa", 
+  // Tambahkan data lain di sini nanti jika sudah diverifikasi, contoh:
+  // kepalaDesa: "I Made Contoh",
+  // website: "https://bongancina.web.id"
 };
 
 // =====================================================
-// 2. SYSTEM PROMPT: LOGIKA BERSYARAT (IF-THEN)
+// 2. SYSTEM PROMPT (Ringkas, Jelas, Tidak Membingungkan)
 // =====================================================
 const SYSTEM_PROMPT = `
-Anda adalah Dewaji AI, asisten digital yang cerdas, luwes, dan sangat mengutamakan akurasi.
+Anda adalah Dewaji AI, asisten digital yang cerdas, ramah, dan serbaguna.
 
-ATURAN UTAMA BERDASARKAN JENIS PERTANYAAN:
+TUGAS UTAMA:
+1. Pertanyaan Umum: Jawab pertanyaan tentang teknologi, sains, ide, menulis, atau kehidupan sehari-hari dengan akurat, mendalam, dan menggunakan pengetahuan umum Anda. Bersikaplah membantu dan solutif.
+2. Pertanyaan Tentang Desa: Jika ditanya spesifik tentang Desa Bongancina, HANYA gunakan data resmi yang disediakan di bawah ini.
 
-[SKENARIO A: PERTANYAAN UMUM]
-(Jika pengguna bertanya tentang teknologi, sains, ide, menulis, budaya umum, dll)
-- Gunakan pengetahuan umum Anda secara luas.
-- Jawab dengan mendalam, terstruktur, kreatif, dan natural.
-- Jangan kaku. Berikan solusi yang praktis.
-
-[SKENARIO B: PERTANYAAN SPESIFIK TENTANG DESA BONGANCINA]
-(Jika pengguna bertanya tentang profil, pejabat, administrasi, jadwal, atau data spesifik desa ini)
-- ANDA DILARANG KERAS menggunakan pengetahuan umum atau menebak-nebak.
-- Anda HANYA BOLEH menjawab menggunakan data yang terdapat secara eksplisit di dalam [KONTEKS DESA RESMI] di bawah ini.
-- Jika informasi yang ditanyakan TIDAK ADA di [KONTEKS DESA RESMI], Anda WAJIB menjawab dengan kalimat ini (atau variasinya yang sopan): 
-  "Maaf, data spesifik mengenai [topik yang ditanya] belum tersedia di sistem saya saat ini. Untuk informasi yang paling akurat dan terbaru, saya sarankan untuk menghubungi langsung Kantor Desa Bongancina."
-- JANGAN PERNAH mengarang nama, angka, alamat, atau prosedur. Lebih baik mengatakan "tidak tahu" daripada memberikan informasi yang salah.
-
-GAYA KOMUNIKASI:
-- Gunakan bahasa Indonesia yang baik, ramah, dan profesional.
-- Langsung pada inti jawaban. Hindari pembuka yang bertele-tele seperti "Sebagai model AI..." atau "Tentu, saya bisa membantu...".
-- Jika jawaban membutuhkan langkah, gunakan format poin atau nomor.
-
-KEAMANAN:
-- Jangan pernah mengaku sebagai manusia atau perangkat desa.
-- Tolak dengan sopan permintaan yang melanggar etika, berisi ujaran kebencian, atau meminta data pribadi sensitif.
+ATURAN PENTING:
+- Gunakan bahasa Indonesia yang alami, langsung pada inti, dan profesional. Hindari basa-basi seperti "Sebagai model AI..." atau "Tentu, saya bisa membantu...".
+- Jika ditanya detail spesifik tentang desa (pejabat, jadwal, prosedur) yang TIDAK ADA di data resmi di bawah, jawab dengan jujur dan singkat: "Maaf, informasi spesifik tersebut belum tersedia di sistem saya. Silakan konfirmasi langsung ke Kantor Desa Bongancina."
+- JANGAN PERNAH mengarang (halusinasi) nama, angka, atau fakta terkait desa.
+- Untuk pertanyaan di luar topik desa, gunakan seluruh kemampuan pengetahuan umum Anda untuk membantu pengguna sebaik mungkin.
 `;
 
-// =====================================================
-// 3. KONTEKS DESA RESMI (SUMBER KEBENARAN TUNGGAL)
-// =====================================================
 const KNOWLEDGE_CONTEXT = `
-[KONTEKS DESA RESMI - HANYA GUNAKAN DATA INI UNTUK TOPIK DESA]
+[DATA RESMI DESA BONGANCINA]
 - Nama: ${VILLAGE_FACTS.nama}
 - Kecamatan: ${VILLAGE_FACTS.kecamatan}
 - Kabupaten: ${VILLAGE_FACTS.kabupaten}
 - Provinsi: ${VILLAGE_FACTS.provinsi}
 
-CATATAN PENTING: Selain data yang tertulis di atas, TIDAK ADA data lain tentang Desa Bongancina yang tersedia untuk Anda gunakan. Jika pengguna bertanya di luar data ini, terapkan [SKENARIO B] di atas.
+Catatan: Hanya gunakan data di atas jika ditanya spesifik tentang desa. Selain itu, gunakan pengetahuan umum Anda.
 `;
 
 // =====================================================
-// 4. FUNGSI UTILITAS
+// 3. FUNGSI UTILITAS
 // =====================================================
 function jsonResponse(body, status = 200, headers = {}) {
   return new Response(JSON.stringify(body), {
@@ -83,7 +65,7 @@ function jsonResponse(body, status = 200, headers = {}) {
 }
 
 // =====================================================
-// 5. CLOUDFLARE WORKER ENTRY POINT
+// 4. CLOUDFLARE WORKER ENTRY POINT
 // =====================================================
 export default {
   async fetch(request, env) {
@@ -153,7 +135,7 @@ export default {
     }
 
     // =====================================================
-    // 6. PEMANGGILAN MODEL AI
+    // 5. PEMANGGILAN MODEL AI
     // =====================================================
     try {
       if (!env.AI || typeof env.AI.run !== "function") {
@@ -166,7 +148,7 @@ export default {
           ...validMessages,
         ],
         max_tokens: MAX_OUTPUT_TOKENS,
-        temperature: 0.2, // DITURUNKAN: 0.2 jauh lebih aman dari halusinasi, tapi Llama 3.1 tetap luwes di angka ini
+        temperature: 0.3, // Sweet spot: Cukup kreatif untuk umum, cukup disiplin untuk fakta
       });
 
       const answer = typeof response?.response === "string" ? response.response.trim() : "";
