@@ -11,62 +11,61 @@ const MAX_MESSAGE_CHARS = 4_000;
 const MAX_OUTPUT_TOKENS = 800;
 
 // =====================================================
-// 1. BASIS DATA FAKTUAL (Hanya isi dengan data yang 100% valid)
+// 1. BASIS DATA FAKTUAL (WAJIB DIISI DATA ASLI)
 // =====================================================
+// AI HANYA akan tahu apa yang ada di sini. Kosongkan jika tidak yakin.
 const VILLAGE_FACTS = {
   nama: "Desa Bongancina",
   kecamatan: "Busungbiu",
   kabupaten: "Buleleng",
   provinsi: "Bali",
-  // Tambahkan data lain di sini nanti jika sudah diverifikasi, 
-  // misalnya: kepalaDesa: "Nama", website: "url"
+  // CONTOH: kepalaDesa: "Bapak I Made XXX", // Hapus komentar & isi jika data valid
+  // CONTOH: jumlahPenduduk: "1.200 jiwa", 
 };
 
 // =====================================================
-// 2. SYSTEM PROMPT: ASISTEN UMUM DENGAN KONTEKS DESA
+// 2. SYSTEM PROMPT: LOGIKA BERSYARAT (IF-THEN)
 // =====================================================
 const SYSTEM_PROMPT = `
-IDENTITAS UTAMA
-Anda adalah Dewaji AI, asisten digital serbaguna yang cerdas, ramah, objektif, dan solutif. 
-Tugas utama Anda adalah membantu pengguna dalam berbagai hal: menjawab pertanyaan umum, berdiskusi, menganalisis, menulis, menyusun ide, dan memecahkan masalah.
+Anda adalah Dewaji AI, asisten digital yang cerdas, luwes, dan sangat mengutamakan akurasi.
 
-Anda memiliki konteks khusus mengenai Desa Bongancina, namun ini TIDAK membatasi kemampuan Anda untuk membahas topik umum lainnya (seperti teknologi, pendidikan, kesehatan, budaya, sains, dll).
+ATURAN UTAMA BERDASARKAN JENIS PERTANYAAN:
 
-GAYA KOMUNIKASI
-- Adaptif: Sesuaikan nada bicara dengan pertanyaan pengguna (formal untuk urusan resmi, santai untuk diskusi umum).
-- Langsung dan Jelas: Jawab inti pertanyaan di awal. Hindari basa-basi seperti "Sebagai model bahasa AI..." atau "Tentu, saya bisa membantu...".
-- Terstruktur: Gunakan poin-poin, tabel, atau langkah-langkah bernomor jika penjelasan bersifat kompleks atau prosedural.
-- Natural: Gunakan bahasa Indonesia yang luwes, enak dibaca, dan tidak terdengar seperti terjemahan mesin.
+[SKENARIO A: PERTANYAAN UMUM]
+(Jika pengguna bertanya tentang teknologi, sains, ide, menulis, budaya umum, dll)
+- Gunakan pengetahuan umum Anda secara luas.
+- Jawab dengan mendalam, terstruktur, kreatif, dan natural.
+- Jangan kaku. Berikan solusi yang praktis.
 
-ATURAN PENGETAHUAN (SANGAT PENTING)
-1. Untuk Pertanyaan Umum: Gunakan pengetahuan umum Anda secara luas untuk memberikan jawaban yang akurat, mendalam, dan bermanfaat.
-2. Untuk Pertanyaan Spesifik Desa Bongancina: HANYA gunakan data yang tersedia di dalam [KONTEKS DESA] di bawah ini. 
-3. Anti-Halusinasi Desa: Jika pengguna bertanya detail spesifik tentang desa (misal: nama pejabat, nomor telepon, jadwal, syarat administrasi) yang TIDAK ada di [KONTEKS DESA], jawab dengan elegan. 
-   Contoh: "Untuk informasi spesifik tersebut, data pastinya belum tersedia di sistem saya saat ini. Saya sarankan menghubungi langsung Kantor Desa Bongancina untuk konfirmasi yang paling akurat."
-   JANGAN pernah mengarang nama, angka, atau prosedur desa.
+[SKENARIO B: PERTANYAAN SPESIFIK TENTANG DESA BONGANCINA]
+(Jika pengguna bertanya tentang profil, pejabat, administrasi, jadwal, atau data spesifik desa ini)
+- ANDA DILARANG KERAS menggunakan pengetahuan umum atau menebak-nebak.
+- Anda HANYA BOLEH menjawab menggunakan data yang terdapat secara eksplisit di dalam [KONTEKS DESA RESMI] di bawah ini.
+- Jika informasi yang ditanyakan TIDAK ADA di [KONTEKS DESA RESMI], Anda WAJIB menjawab dengan kalimat ini (atau variasinya yang sopan): 
+  "Maaf, data spesifik mengenai [topik yang ditanya] belum tersedia di sistem saya saat ini. Untuk informasi yang paling akurat dan terbaru, saya sarankan untuk menghubungi langsung Kantor Desa Bongancina."
+- JANGAN PERNAH mengarang nama, angka, alamat, atau prosedur. Lebih baik mengatakan "tidak tahu" daripada memberikan informasi yang salah.
 
-KEAMANAN DAN ETIKA
-- Lindungi privasi: Jangan meminta atau menyimpan data sensitif (NIK, password, data keuangan).
-- Tetap netral dan objektif.
-- Jika permintaan melanggar etika atau berbahaya, tolak dengan sopan dan singkat.
-- Anda adalah asisten digital, bukan manusia. Jangan mengaku sebagai perangkat desa atau manusia.
+GAYA KOMUNIKASI:
+- Gunakan bahasa Indonesia yang baik, ramah, dan profesional.
+- Langsung pada inti jawaban. Hindari pembuka yang bertele-tele seperti "Sebagai model AI..." atau "Tentu, saya bisa membantu...".
+- Jika jawaban membutuhkan langkah, gunakan format poin atau nomor.
 
-PRINSIP UTAMA
-Jadilah mitra diskusi yang membantu dan masuk akal. Gunakan aturan di atas sebagai panduan, bukan sebagai alasan untuk menolak menjawab pertanyaan umum yang aman dan bermanfaat.
+KEAMANAN:
+- Jangan pernah mengaku sebagai manusia atau perangkat desa.
+- Tolak dengan sopan permintaan yang melanggar etika, berisi ujaran kebencian, atau meminta data pribadi sensitif.
 `;
 
 // =====================================================
-// 3. KONTEKS DESA (Satu-satunya sumber kebenaran untuk topik desa)
+// 3. KONTEKS DESA RESMI (SUMBER KEBENARAN TUNGGAL)
 // =====================================================
 const KNOWLEDGE_CONTEXT = `
-[KONTEKS RESMI DESA BONGANCINA]
-Gunakan data ini HANYA ketika pengguna bertanya spesifik tentang Desa Bongancina. 
+[KONTEKS DESA RESMI - HANYA GUNAKAN DATA INI UNTUK TOPIK DESA]
 - Nama: ${VILLAGE_FACTS.nama}
 - Kecamatan: ${VILLAGE_FACTS.kecamatan}
 - Kabupaten: ${VILLAGE_FACTS.kabupaten}
 - Provinsi: ${VILLAGE_FACTS.provinsi}
 
-CATATAN: Selain data di atas, Anda tidak memiliki informasi real-time atau detail administratif lain tentang desa ini. Jika ditanya hal di luar data ini, arahkan pengguna ke sumber resmi desa dengan sopan.
+CATATAN PENTING: Selain data yang tertulis di atas, TIDAK ADA data lain tentang Desa Bongancina yang tersedia untuk Anda gunakan. Jika pengguna bertanya di luar data ini, terapkan [SKENARIO B] di atas.
 `;
 
 // =====================================================
@@ -91,7 +90,6 @@ export default {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin");
 
-    // Validasi CORS
     const allowedOrigin = !origin || origin === url.origin || ALLOWED_ORIGINS.has(origin);
     const corsHeaders = {
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -112,94 +110,75 @@ export default {
     }
 
     if (request.method === "GET") {
-      return new Response("Dewaji AI backend aktif dan siap melayani.", {
+      return new Response("Dewaji AI backend aktif.", {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
       });
     }
 
     if (request.method !== "POST") {
-      return jsonResponse({ answer: "Metode permintaan tidak didukung." }, 405, { ...corsHeaders, Allow: "GET, POST, OPTIONS" });
+      return jsonResponse({ answer: "Metode tidak didukung." }, 405, { ...corsHeaders, Allow: "GET, POST, OPTIONS" });
     }
 
-    // Validasi Payload
     const contentType = request.headers.get("Content-Type") || "";
     if (!/^application\/json(?:\s*;|$)/i.test(contentType)) {
-      return jsonResponse({ answer: "Permintaan harus menggunakan JSON." }, 415, corsHeaders);
-    }
-
-    const contentLength = request.headers.get("Content-Length");
-    if (contentLength !== null) {
-      const length = Number(contentLength);
-      if (!Number.isSafeInteger(length) || length < 0 || length > MAX_BODY_BYTES) {
-        return jsonResponse({ answer: "Ukuran permintaan tidak valid atau terlalu besar." }, 413, corsHeaders);
-      }
+      return jsonResponse({ answer: "Permintaan harus JSON." }, 415, corsHeaders);
     }
 
     let data;
     try {
       const rawBody = await request.text();
       if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
-        return jsonResponse({ answer: "Ukuran permintaan terlalu besar." }, 413, corsHeaders);
+        return jsonResponse({ answer: "Payload terlalu besar." }, 413, corsHeaders);
       }
       data = JSON.parse(rawBody);
     } catch {
       return jsonResponse({ answer: "Format JSON tidak valid." }, 400, corsHeaders);
     }
 
-    if (!data || typeof data !== "object" || Array.isArray(data) || !Array.isArray(data.messages) || data.messages.length === 0) {
-      return jsonResponse({ answer: "Pesan percakapan belum tersedia atau format salah." }, 400, corsHeaders);
+    if (!data?.messages || !Array.isArray(data.messages) || data.messages.length === 0) {
+      return jsonResponse({ answer: "Pesan tidak valid." }, 400, corsHeaders);
     }
 
-    // Normalisasi Riwayat Pesan
-    const validMessages = [];
-    for (const message of data.messages.slice(-MAX_MESSAGES)) {
-      if (!message || typeof message !== "object" || !["user", "assistant"].includes(message.role) || typeof message.content !== "string" || !message.content.trim()) {
-        return jsonResponse({ answer: "Format pesan percakapan tidak valid." }, 400, corsHeaders);
-      }
-      validMessages.push({
-        role: message.role,
-        content: message.content.trim().slice(0, MAX_MESSAGE_CHARS),
-      });
+    const validMessages = data.messages
+      .slice(-MAX_MESSAGES)
+      .filter(m => m?.role && ["user", "assistant"].includes(m.role) && typeof m.content === "string" && m.content.trim())
+      .map(m => ({
+        role: m.role,
+        content: m.content.trim().slice(0, MAX_MESSAGE_CHARS),
+      }));
+
+    if (validMessages.length === 0 || validMessages.at(-1).role !== "user") {
+      return jsonResponse({ answer: "Format pesan terakhir harus dari pengguna." }, 400, corsHeaders);
     }
 
-    const latestMessage = validMessages.at(-1);
-    if (latestMessage.role !== "user") {
-      return jsonResponse({ answer: "Pesan terakhir harus berasal dari pengguna." }, 400, corsHeaders);
-    }
-
-    // Panggil Model AI
+    // =====================================================
+    // 6. PEMANGGILAN MODEL AI
+    // =====================================================
     try {
       if (!env.AI || typeof env.AI.run !== "function") {
-        throw new Error("Binding Workers AI tidak tersedia.");
+        throw new Error("Workers AI tidak tersedia.");
       }
 
       const response = await env.AI.run(MODEL, {
         messages: [
-          {
-            role: "system",
-            content: SYSTEM_PROMPT + "\n\n" + KNOWLEDGE_CONTEXT,
-          },
+          { role: "system", content: SYSTEM_PROMPT + "\n\n" + KNOWLEDGE_CONTEXT },
           ...validMessages,
         ],
         max_tokens: MAX_OUTPUT_TOKENS,
-        temperature: 0.5, // Seimbang: cukup kreatif untuk umum, cukup ketat untuk fakta
+        temperature: 0.2, // DITURUNKAN: 0.2 jauh lebih aman dari halusinasi, tapi Llama 3.1 tetap luwes di angka ini
       });
 
       const answer = typeof response?.response === "string" ? response.response.trim() : "";
 
       if (!answer) {
-        return jsonResponse({ answer: "Maaf, Dewaji AI belum dapat menghasilkan jawaban. Silakan coba kembali." }, 502, corsHeaders);
+        return jsonResponse({ answer: "Maaf, terjadi kesalahan saat memproses jawaban. Silakan coba lagi." }, 502, corsHeaders);
       }
 
       return jsonResponse({ answer }, 200, corsHeaders);
     } catch (error) {
-      console.error("Dewaji AI Workers AI Error:", error instanceof Error ? error.message : "Unknown error");
-      return jsonResponse(
-        { answer: "Maaf, Dewaji AI sedang mengalami gangguan teknis sesaat. Silakan coba kembali." },
-        502,
-        corsHeaders
-      );
+      console.error("Dewaji AI Error:", error.message);
+      return jsonResponse({ answer: "Maaf, layanan sedang gangguan teknis. Silakan coba beberapa saat lagi." }, 502, corsHeaders);
     }
   },
 };
